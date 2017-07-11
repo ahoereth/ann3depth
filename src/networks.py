@@ -136,10 +136,16 @@ class DownsampleNetwork(DepthMapNetwork):
                                     )
         self.output = tf.squeeze(conv)
 
+        ema = tf.train.ExponentialMovingAverage(decay=0.9999)
+        tf.summary.scalar(ema)
+
         self.loss = tf.reduce_mean(
             tf.squared_difference(self.output, self.target)
         )
-        self.optimizer = tf.train.AdamOptimizer(
-                            learning_rate=0.001,
-                            epsilon=1.0
-                         ).minimize(self.loss)
+        ema_op.apply(self.loss)
+
+        with tf.control_dependencies(ema_op):
+            self.optimizer = tf.train.AdamOptimizer(
+                                learning_rate=0.001,
+                                epsilon=1.0
+                             ).minimize(self.loss)
